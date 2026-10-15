@@ -2697,7 +2697,7 @@ export interface PluginManifestResponse {
     hidden?: boolean;
   };
   slots?: string[];
-  entry: string;
+  entry: string | null;
   css?: string | null;
   has_api: boolean;
   source: string;

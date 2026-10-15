@@ -19,7 +19,8 @@ export interface PluginManifest {
   };
   /** Declared for discovery; actual slots use registerSlot in the plugin bundle. */
   slots?: string[];
-  entry: string;
+  /** Null for API-only plugins that expose backend routes but no dashboard UI. */
+  entry: string | null;
   css?: string | null;
   has_api: boolean;
   /**

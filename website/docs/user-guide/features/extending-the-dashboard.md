@@ -431,9 +431,9 @@ If you prefer JSX, use any bundler (esbuild, Vite, rollup) with React as an exte
 ├── plugin.yaml              # optional — existing CLI/gateway plugin manifest
 ├── __init__.py              # optional — existing CLI/gateway hooks
 └── dashboard/               # dashboard extension
-    ├── manifest.json        # required — tab config, icon, entry point
+    ├── manifest.json        # required — UI config, or api_only flag for a backend-only extension
     ├── dist/
-    │   ├── index.js         # required — pre-built JS bundle (IIFE)
+    │   ├── index.js         # required for UI plugins — pre-built JS bundle (IIFE)
     │   └── style.css        # optional — custom CSS
     └── plugin_api.py        # optional — backend API routes (FastAPI)
 ```
@@ -442,6 +442,7 @@ A single plugin directory can carry three orthogonal extensions:
 
 - `plugin.yaml` + `__init__.py` — CLI/gateway plugin ([see plugins page](./plugins)).
 - `dashboard/manifest.json` + `dashboard/dist/index.js` — dashboard UI plugin.
+- `dashboard/manifest.json` with `api_only: true` — API-only dashboard extension with no tab or browser bundle.
 - `dashboard/plugin_api.py` — dashboard backend routes.
 
 None of them are required; include only the layers you need.
@@ -475,14 +476,15 @@ None of them are required; include only the layers you need.
 | `description` | No | Short description (shown in dashboard admin surfaces). |
 | `icon` | No | Lucide icon name. Defaults to `Puzzle`. Unknown names fall back to `Puzzle`. |
 | `version` | No | Semver string. Defaults to `0.0.0`. |
-| `tab.path` | Yes | URL path for the tab (e.g. `/my-plugin`). |
+| `tab.path` | No | URL path for a UI tab (e.g. `/my-plugin`). Not used by API-only plugins. |
 | `tab.position` | No | Where to insert the tab. `"end"` (default), `"after:<path>"`, or `"before:<path>"` — value after the colon is the **path segment** of the target tab (no leading slash). Examples: `"after:skills"`, `"before:config"`. |
 | `tab.override` | No | Set to a built-in route path (`"/"`, `"/sessions"`, `"/config"`, ...) to **replace** that page instead of adding a new tab. See [Replacing built-in pages](#replacing-built-in-pages-taboverride). |
 | `tab.hidden` | No | When true, register the component and any slots without adding a tab to the nav. Used by slot-only plugins. See [Slot-only plugins](#slot-only-plugins-tabhidden). |
 | `slots` | No | Named shell slots this plugin populates. **Documentation aid only** — actual registration happens from the JS bundle via `registerSlot()`. Listing slots here makes discovery surfaces more informative. |
-| `entry` | Yes | Path to the JS bundle relative to `dashboard/`. Defaults to `dist/index.js`. |
+| `entry` | No | Path to the JS bundle relative to `dashboard/`. Defaults to `dist/index.js` for UI plugins. Omit it when `api_only: true`. |
 | `css` | No | Path to a CSS file to inject as a `<link>` tag. |
 | `api` | No | Path to a Python file with FastAPI routes. Mounted at `/api/plugins/<name>/`. |
+| `api_only` | No | Set to `true` for a plugin that exposes a backend API but has no dashboard UI bundle. Such plugins do not add a tab or load a browser script. |
 
 #### Available icons
 

@@ -4919,6 +4919,22 @@ class TestDashboardPluginManifestExtensions:
         assert entry["tab"]["hidden"] is True
         assert entry["slots"] == ["sidebar", "header-left"]
 
+    def test_api_only_manifest_has_no_dashboard_bundle(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        self._write_plugin(tmp_path, "api-only", {
+            "name": "api-only",
+            "label": "API Only",
+            "api_only": True,
+            "api": "plugin_api.py",
+        })
+
+        plugins = _web_server_dashboard._discover_dashboard_plugins()
+
+        entry = next(p for p in plugins if p["name"] == "api-only")
+        assert entry["entry"] is None
+        assert entry["tab"]["hidden"] is True
+        assert entry["has_api"] is True
+
     def test_user_plugins_ignore_profile_home_override(self, tmp_path, monkeypatch):
         """Regression: user dashboard extensions are a dashboard-owned asset
         (like theme YAML), so they must stay visible after a context-local

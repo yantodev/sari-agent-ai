@@ -263,6 +263,7 @@ function buildNavItems(
   const items = [...builtIn];
 
   for (const manifest of manifests) {
+    if (!manifest.entry) continue;
     if (manifest.tab.override) continue;
     if (manifest.tab.hidden) continue;
 
@@ -319,6 +320,7 @@ function buildRoutes(
   const addons: PluginManifest[] = [];
 
   for (const m of manifests) {
+    if (!m.entry) continue;
     if (m.tab.override) {
       byOverride.set(m.tab.override, m);
     } else {
@@ -357,6 +359,7 @@ function buildRoutes(
   }
 
   for (const m of manifests) {
+    if (!m.entry) continue;
     if (!m.tab.hidden) continue;
     if (m.tab.path === "/plugins") continue;
     if (builtinRoutes[m.tab.path] || m.tab.override) continue;

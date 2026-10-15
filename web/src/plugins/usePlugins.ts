@@ -14,6 +14,7 @@ import {
   getPluginComponent,
   onPluginRegistered,
   notifyPluginRegistry,
+  clearPluginLoadError,
   setPluginLoadError,
 } from "./registry";
 
@@ -78,6 +79,7 @@ export function usePlugins() {
     () => !canSeedLoadedFromCache(getCachedManifests()),
   );
   const loadedScripts = useRef<Set<string>>(new Set());
+  const latestManifests = useRef(manifests);
 
   // Always re-fetch in the background to keep the cache fresh.
   // This handles: new plugins added, plugins removed, manifest changes.
@@ -87,8 +89,14 @@ export function usePlugins() {
       .getPlugins()
       .then((list) => {
         cacheManifests(list);
+        latestManifests.current = list;
+        for (const manifest of list) {
+          if (!manifest.entry) clearPluginLoadError(manifest.name);
+        }
         setManifests(list);
-        if (list.length === 0) setLoading(false);
+        if (list.length === 0 || list.every((manifest) => !manifest.entry)) {
+          setLoading(false);
+        }
       })
       .catch(() => setLoading(false));
   }, []);
@@ -97,9 +105,15 @@ export function usePlugins() {
   useEffect(() => {
     if (manifests.length === 0) return;
 
+    const uiManifests = manifests.filter(
+      (manifest): manifest is PluginManifest & { entry: string } =>
+        typeof manifest.entry === "string" && manifest.entry.length > 0,
+    );
+    if (uiManifests.length === 0) return;
+
     const injectedScripts: HTMLScriptElement[] = [];
 
-    for (const manifest of manifests) {
+    for (const manifest of uiManifests) {
       // Inject CSS if specified.
       if (manifest.css) {
         const cssUrl = `${HERMES_BASE_PATH}/dashboard-plugins/${manifest.name}/${manifest.css}`;
@@ -138,6 +152,8 @@ export function usePlugins() {
         script.crossOrigin = "anonymous";
       }
       script.onerror = () => {
+        const current = latestManifests.current.find((item) => item.name === manifest.name);
+        if (current?.entry !== manifest.entry) return;
         setPluginLoadError(manifest.name, "LOAD_FAILED");
         console.warn(
           `[plugins] Failed to load ${manifest.name} from ${scriptSrc} (open Network tab)`,
@@ -146,6 +162,8 @@ export function usePlugins() {
       script.onload = () => {
         notifyPluginRegistry();
         queueMicrotask(() => {
+          const current = latestManifests.current.find((item) => item.name === manifest.name);
+          if (current?.entry !== manifest.entry) return;
           if (getPluginComponent(manifest.name)) return;
           setPluginLoadError(manifest.name, "NO_REGISTER");
         });
@@ -169,8 +187,11 @@ export function usePlugins() {
   // Listen for plugin registrations and resolve them against manifests.
   useEffect(() => {
     function resolvePlugins() {
+      const uiManifests = manifests.filter(
+        (manifest) => typeof manifest.entry === "string" && manifest.entry.length > 0,
+      );
       const resolved: RegisteredPlugin[] = [];
-      for (const manifest of manifests) {
+      for (const manifest of uiManifests) {
         const component = getPluginComponent(manifest.name);
         if (component) {
           resolved.push({ manifest, component });
@@ -178,7 +199,7 @@ export function usePlugins() {
       }
       setPlugins(resolved);
       // If all plugins registered, stop loading early.
-      if (resolved.length === manifests.length && manifests.length > 0) {
+      if (resolved.length === uiManifests.length) {
         setLoading(false);
       }
     }

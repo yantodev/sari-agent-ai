@@ -518,6 +518,7 @@ def _dashboard_plugin_search_dirs() -> list[tuple]:
 
 
 def _dashboard_plugin_entry(data: dict[str, Any], name: str, dashboard_dir: Path, source: str) -> dict[str, Any]:
+    api_only = data.get("api_only") is True
     # Tab options: ``path`` + ``position`` for a new tab, optional ``override`` to replace a
     # built-in route, and ``hidden`` to register component/slots without adding a tab.
     raw_tab = data.get("tab", {}) if isinstance(data.get("tab"), dict) else {}
@@ -525,7 +526,7 @@ def _dashboard_plugin_entry(data: dict[str, Any], name: str, dashboard_dir: Path
     override_path = raw_tab.get("override")
     if isinstance(override_path, str) and override_path.startswith("/"):
         tab_info["override"] = override_path
-    if bool(raw_tab.get("hidden")):
+    if api_only or bool(raw_tab.get("hidden")):
         tab_info["hidden"] = True
     # Slots the plugin populates via ``window.registerSlot(pluginName, slotName, Component)``.
     slots_src = data.get("slots")
@@ -549,7 +550,9 @@ def _dashboard_plugin_entry(data: dict[str, Any], name: str, dashboard_dir: Path
         "version": data.get("version", "0.0.0"),
         "tab": tab_info,
         "slots": slots,
-        "entry": data.get("entry", "dist/index.js"),
+        # API-only plugins have no browser bundle. Keep the historical default for
+        # existing UI plugins whose manifests omit `entry`.
+        "entry": None if api_only else data.get("entry", "dist/index.js"),
         "css": data.get("css"),
         "has_api": bool(safe_api),
         "source": source,

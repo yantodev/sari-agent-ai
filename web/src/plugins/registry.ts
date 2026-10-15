@@ -81,6 +81,10 @@ export function setPluginLoadError(name: string, message: string) {
   _notify();
 }
 
+export function clearPluginLoadError(name: string) {
+  if (_loadErrors.delete(name)) _notify();
+}
+
 /** Subscribe to registry changes (returns unsubscribe fn). */
 export function onPluginRegistered(fn: RegistryListener): () => void {
   _listeners.add(fn);
